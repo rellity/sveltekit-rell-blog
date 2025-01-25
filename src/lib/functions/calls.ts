@@ -1,11 +1,14 @@
-import { supabase } from "$lib/server/supabaseServer";
-import type { PageServerLoad } from "./$types";
+import { supabase } from '$lib/supabaseClient';
+import type { Blog } from '$lib/types';
 
-export const load: PageServerLoad = async ({ url }) => {
-    const page = parseInt(url.searchParams.get('page') || '1');
-    const itemsPerPage = 4;
-    const from = (page - 1) * itemsPerPage;
-    const to = from + itemsPerPage - 1;
+export const getPosts = async ({ page, limit }: { page: number, limit: number }): Promise<{
+    blogs: Blog[],
+    total: number,
+    status?: number,
+    error?: string
+}> => {
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
 
     const { data: blogs, error } = await supabase
         .from('blogs')
@@ -16,7 +19,9 @@ export const load: PageServerLoad = async ({ url }) => {
     if (error) {
         return {
             status: 500,
-            error: error.message
+            error: error.message,
+            blogs: [],
+            total: 0
         }
     }
 
@@ -25,10 +30,7 @@ export const load: PageServerLoad = async ({ url }) => {
         .select('*', { count: 'exact' });
 
     return {
-        status: 200,
         blogs: blogs || [],
         total: total || 0,
-        page,
-        itemsPerPage
     }
 };
